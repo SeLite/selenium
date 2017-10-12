@@ -15,7 +15,6 @@ class RubyMappings
   end
 
   class RubyLibrary < Tasks
-
     def handle(_fun, dir, args)
       desc "Build #{args[:name]} in build/#{dir}"
       task_name = task_name(dir, args[:name])
@@ -52,7 +51,6 @@ class RubyMappings
     def build_dir
       "build"
     end
-
   end
 
   class CheckTestArgs
@@ -133,7 +131,7 @@ class RubyMappings
       readme = args[:readme] || raise("no :readme specified for rubydocs")
 
       desc 'Generate Ruby API docs'
-      t = task "//#{dir}:docs" do |t|
+      t = task "//#{dir}:docs" do
         yard_args = %w[doc --verbose]
         yard_args += ["--output-dir", output_dir]
         yard_args += ["--readme", readme]
@@ -182,7 +180,7 @@ class RubyMappings
     def define_clean_task(dir, _args)
       desc 'Clean rubygem artifacts'
       task "//#{dir}:gem:clean" do
-        rm_rf "build/*.gem"
+        Dir['build/*.gem'].each { |gem| rm(gem) }
       end
     end
 
@@ -198,8 +196,26 @@ class RubyMappings
       desc 'Install gem dependencies for the current Ruby'
       task "//#{dir}:bundle" do
         ENV['BUNDLE_GEMFILE'] = 'rb/Gemfile'
-        sh "gem install bundler"
-        sh "bundle", "install"
+
+        gem_path = "#{Dir.pwd}/build/third_party/rb"
+        bin_path = "#{gem_path}/bin"
+        ENV["GEM_PATH"] = gem_path
+        ENV["PATH"] = [bin_path, ENV["PATH"]].join(":")
+
+        gems = `gem list`.split("\n")
+        if gems.none? { |gem| gem =~ /^bundler\s/ }
+          bundler_gem = Dir["third_party/rb/bundler-*.gem"].first
+
+          sh "gem", "install",
+             "--local", "--no-ri", "--no-rdoc",
+             "--install-dir", gem_path,
+             "--bindir", bin_path,
+             bundler_gem
+        end
+
+        sh "bundle", "config", "--local", "cache_path", "../third_party/rb/vendor/cache"
+        sh "bundle", "config", "--local", "path", "#{gem_path}/vendor/bundle"
+        sh "bundle", "install", "--local"
       end
     end
   end # RubyGem
