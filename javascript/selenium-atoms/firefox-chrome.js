@@ -71,9 +71,9 @@ core.firefox.unwrap = function(thing) {
 
     // unwrap is not available on older branches (3.5 and 3.6) - Bug 533596
     try {
-        var isWrapper = thing == XPCNativeWrapper(thing);
+        var isWrapper = thing == xpcNativeWrapper(thing);
         if (isWrapper) {
-            var unwrapped = XPCNativeWrapper.unwrap(thing);
+            var unwrapped = xpcNativeWrapper.unwrap(thing);
             var toReturn = !!unwrapped ? unwrapped : thing;
             toReturn.__fxdriver_unwrapped = true;
             return toReturn;
